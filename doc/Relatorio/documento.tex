@@ -1,0 +1,450 @@
+\documentclass{report}
+\usepackage[T1]{fontenc} % Fontes T1
+\usepackage[utf8]{inputenc} % Input UTF8
+\usepackage[backend=biber, style=ieee]{biblatex} % para usar bibliografia
+\usepackage{csquotes}
+\usepackage[portuguese]{babel} %Usar língua portuguesa
+\usepackage{blindtext} % Gerar texto automaticamente
+\usepackage[printonlyused]{acronym}
+\usepackage{hyperref} % para autoref
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tabto}
+
+\bibliography{bibliografia}
+
+\begin{document}
+%%
+% Definições
+%
+\def\titulo{Gerador de Questionários}
+\def\autores{(85088) Francisco Martinho, (88930) João Simões, (93088) Eduardo Cruz, (95228) Lara Matos, (98003) João Felisberto}
+\def\departamento{Departamento de Eletrónica,Telecomunicações e Informática}
+\def\uni{Universidade de Aveiro}
+\def\uc{Linguagens Formais e Autómatos}
+\def\logotipo{ua.pdf}
+
+%
+%%%%%% CAPA %%%%%%
+%
+\begin{titlepage}
+
+\begin{center}
+%
+\vspace*{50mm}
+%
+{\Huge \titulo}\\ 
+%
+\vspace{10mm}
+%
+{\Large \departamento}\\
+%
+\vspace{10mm}
+%
+%
+{\Large \uni}\\
+%
+\vspace{10mm}
+%
+{\Large \uc}\\
+%
+\vspace{10mm}
+%
+{\LARGE \autores}\\ 
+%
+\vspace{30mm}
+%
+\begin{figure}[h]
+\center
+\includegraphics{\logotipo}
+\end{figure}
+%
+\vspace{30mm}
+\end{center}
+%
+\end{titlepage}
+
+%%  Página de Título %%
+\title{%
+{\Huge\textbf{\titulo}}\\
+{\Large \departamento\\ \empresa\\ \uc}
+}
+%
+\author{%
+    \autores \\
+    \autorescontactos
+}
+%
+\date{\data}
+%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\tableofcontents
+%\listoftables
+%\listoffigures
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\clearpage
+\pagenumbering{arabic}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Resumo}
+\label{chap.resumo}
+
+\paragraph{ }
+No âmbito da Unidade Curricular de Linguagens Formais e Autómatos, foi proposto o desenvolvimento de um projeto a este grupo de alunos. Esse projeto consiste num Gerador de Questionários.
+
+Neste relatório, serão abordados items relacionados com o trabalho, tais como os objetivos com este trabalho apresentados no \autoref{chap.intro}, a linguagem para a Base de Dados (\textbf{\textit{CQuiz}}), a linguagem para o Desenvolvimento de Questionários (\textbf{\textit{Quiz}}), e as conclusões tiradas com o desenvolvimento deste projeto.
+
+Na pasta designada de "\texttt{manual}" contém um manual de instruções com todas as indicações a ter em consideração para o bom funcionamento por parte do utilizador.
+
+
+%-------------Introdução-------------%
+
+\chapter{Introdução}
+\label{chap.intro}
+
+\paragraph{ }
+No nosso dia a dia, é muito frequente depararmo-nos com avaliações e desafios. Para isso, é usual a utilização de questionários para a avaliação de conhecimentos, sendo essas questões de vários tipos, tais como de escolha múltipla, correspondência, resposta direta, entre outros.
+
+Os objetivos deste projeto são: 
+\begin{itemize}
+	\item Definição de uma linguagem principal para a construção de questionários interativos;
+	\item Contrução de um compilador para transformar a linguagem num programa de linguagem genérica;
+	\item Definição de uma linguagem auxiliar para a construção de bancos de perguntas;
+	\item Extração dos bancos de perguntas através de linguagem principal.
+\end{itemize}
+
+Para iniciar este projeto, surge a linguagem \textbf{\textit{Quiz}} onde se processa toda a estrutura do questionário, com semelhanças a linguagens de alto nível e ferramentas adicionais para desenvolvimento de questionários interativos.
+
+\textbf{\textit{Quiz}} apresenta a possibilidade de:
+\begin{itemize}
+	\item Definir variáveis de diferentes tipos;
+	\item Utilizar ciclos e intruções de condição;
+	\item Conter instruções para a apresentação de questionários e respetiva modulação;
+	\item Processar respostas e sua respetiva recolha das mesmas para análise.
+\end{itemize}
+
+Quando o ficheiro \textit{Quiz.g4} é compilado, usando os comandos de \textbf{ANTLR4}, cria-se um ficheiro com a linguagem de destino. Neste caso, será em \textbf{Java}.
+
+Sabendo agora da existência da liguagem de desenvolvimento de questionários, é necessária a criação de uma linguagem auxiliar \textit{CQuiz.g4} que serve de base de dados, ou seja, guarda as perguntas para posterior utilização nos questionários. Esta linguagem é muito mais simples do que a \textbf{\textit{Quiz}}, permitindo assim ao programador descrever ficheiros de perguntas que são carregadas para uma base de dados que tanto pode ser ou não utilizada para o desenvolvimento do(s) questionário(s) que queremos.
+
+Para um melhor entendimento do que está descrito acima, seguem-se capítulos que irão descrever detalhamente as linguagens \textbf{\textit{Quiz}}, presente no \autoref{chap.lprincipal}, e \textbf{\textit{CQuiz}}, no \autoref{chap.lauxiliar}, com respetivos exemplos. Posteriormente, está também apresentado um Manual de Utilização na pasta "\texttt{manual}", com instruções de compilação dos programas desenvolvidos e como é que cada um deverá correr.
+
+
+
+%----------------Desenvolvimento---------------------%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LINGUAGEM AUXILIAR CQUIZ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Linguagem auxiliar \textit{CQuiz}}
+\label{chap.lauxiliar}
+
+\paragraph{}
+
+Foi criada uma linguagem simples \textbf{\textit{CQuiz}} para gerar uma base de dados de perguntas que o utilizador pode usufruir. Esta linguagem tem como objetivo a descrição de ficheiros que contêm as perguntas que podem ser usadas num determinado questionário.
+
+Cada pergunta é constituída pelas características presentes na seguinte tabela:
+
+\begin{center}
+\begin{tabular}{| l | l |}
+%\caption{Constituintes de uma pergunta}
+	\hline
+	ID 	    			& identificador (índice da pergunta) \\
+	\hline
+	grupos				& genérico (tema, dificuldade, ...) \\
+	\hline
+	pergunta			& string (texto da pergunta) \\
+	\hline
+	resposta			& string (texto da resposta) \\	
+	\hline
+	dependências		& só se pode responder a uma pergunta se tiver feito as anteriores \\
+	\hline
+	\textit{validator}	& valida a resposta \\
+	\hline
+\end{tabular}
+\end{center}
+
+É de salientar que, em cada tema, não é permitido que haja IDs iguais nem perguntas iguais, da mesma forma como também não é permitido respostas iguais numa mesma pergunta.
+
+Assim, ficou mais percetível como é que cada pegunta é constituída. No seguimento deste raciocínio, a base de dados das perguntas será organizada numa Lista com todas as perguntas que podem ser usadas num determinado questionário originado pelo utilizador.
+
+Exemplo:
+
+\begin{tabbing}
+	\texttt{ID: question \{ }\\
+	\texttt{\quad\quad\quad  [group1, group2, group3, ...];}\\
+	\texttt{\quad\quad\quad [depend1, depend2, ...];}\\
+	\texttt{\quad\quad\quad <multiple|match|numeric|short|long>;}\\
+	\texttt{\quad\quad\quad <possible answers>}\\
+	\texttt{\quad\quad\quad <correct>}\\
+	\texttt{\}}\\
+\end{tabbing}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 	LINGUAGEM PRINCIPAL QUIZ   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Linguagem principal \textit{Quiz}}
+\label{chap.lprincipal}
+
+\paragraph{}
+
+%%% ------------------- SECÇAO DAS INSTRUCOES --------------- %%%
+\section{Intruções}
+
+\paragraph{}
+
+Em \textbf{Quiz} tanto pode haver instruções em bloco como instruções de linha. Nestas últimas, as instruções são sempre terminadas com o caractér ';'. 
+
+%%% ---- Subsecção TIPOS ------%
+\section{Tipos}
+
+\paragraph{}
+
+A linguagem \textbf{Quiz} apresenta os seguintes tipos: 
+
+\begin{itemize}
+	\item int: representação de um valor inteiro; equivalente ao Integer na linguagem de destino.
+	\item string: representação de strings; equivalente ao String na linguagem de destino;
+	\item question: representação de questões da classe Question;
+	\item number: representação de um número;
+	\item text: representação de texto;
+	\item list: representação de uma estrutura de dados List na linguagem de destino;
+\end{itemize}
+
+
+% ---------------- Secção dos COMENTARIOS ---------------- %
+
+\section{Comentários}
+
+\paragraph{}
+
+Na linguagem \textbf{\textit{Quiz}}, é considerada uma linha em comentário sempre que, no início dessa mesma linha, estiver presente o caracter '\#'.
+
+
+% ------ Secção Palavras reservadas -------%
+\section{Palavras reservadas}
+
+\paragraph{}
+
+Aqui estão as palavras reservadas:
+
+\begin{itemize}
+	\item main
+	\item stat
+	\item qdb
+	\item question
+	\item varDecl
+	\item mcall
+	\item qans
+	\item qcorrect
+	\item propertyAccess
+	\item fluxCtrl
+	\item if
+	\item elsif
+	\item do
+	\item while
+	\item for
+	\item foreach
+	\item loopStat
+	\item exp
+	\item list
+	\item tuple
+	\item lstElem
+	\item listIndex
+	\item questionType
+	\item int
+	\item string
+\end{itemize}
+
+
+% ------ Secção Operações Aritméticas ------- %
+\section{Operações Aritméticas}
+
+\paragraph{}
+
+Na tabela seguinte está o conjunto de todas as operações que são possíveis nesta linguagem:
+
+\begin{center}
+\begin{tabular}{| c | c | c |}
+%\caption{Tabela de Operações}
+%\begin{OperationTable}{c|cc}
+	\hline
+	\textbf{Símbolo} & \textbf{Função} 		& \textbf{Tipo} \\
+	\hline
+	+ 	    & Adicão ou Sinal Positivo 		& int \\
+	-		& Subrtração ou Sinal Negativo	& int \\
+	/		& Divisão						& int \\
+	\%		& Resto da Divisão Inteira		& int \\
+	*		& Multiplicação					& int \\
+	== 		& Igualdade						& int, string \\
+	!=		& Diferença						& int, string \\
+	<		& Menor							& int \\
+	>		& Maior							& int \\
+	<=		& Menor ou Igual				& int \\
+	>=		& Maior ou Igual				& int \\	
+	\hline
+\end{tabular}
+\end{center}
+
+\paragraph{}
+
+Para as estruturas condicionais, temos as palavras reservadas \textbf{\textit{and}} e \textbf{\textit{or}} que são, respetivamente, a conjunção e a disjunção lógicas.
+
+
+%------------ Secção Instruções Condicionais --------------- %
+
+\section{Instruções Condicionais}
+
+\paragraph{}
+
+Na linguagem \textbf{\textit{Quiz}} existe a permissão de utlização de instruções condicionais, que alteram o fluxo do programa a desenvolver, escolhendo assim outros caminhos para o final pretendido.
+
+Para isso, é muito usado um tipo de estrutura com a seguinte síntaxe:
+
+\begin{quote}
+	\texttt{\textcolor{green}{if} (condition) \{...\} }
+	
+	\texttt{\textcolor{green}{else if} (condition) \{...\}}
+	
+	\texttt{\textcolor{green}{else} \{...\}}
+\end{quote}
+
+Quando o programador está a escrever um programa, mais especificamente uma instrução condicional, não pode aparecer mais do que um \textbf{\texttt{if}} por cada instrução. É esta a palavra que expressa o início de uma instrução condicional. No entanto, pode-se colocar tantos \textbf{\texttt{if}} quantos aqueles que o programador assim o desejar. Quando chegar à última condição desse conjunto de instruções condicionais, terá que ser usado um \textbf{\texttt{else}}. A cadeia de instruções condicionais tem que ser expressa obrigatoriamente sempre por esta ordem aqui descrita.
+
+Dentro de cada \textbf{\texttt{condition}} do \textbf{\texttt{if}} ou \textbf{\texttt{else if}}, pode existir uma ou mais condições. Neste último caso, podem ser usadas as palavras reservadas \textbf{\texttt{and}} e/ou \textbf{\texttt{or}}, que são, respetivamente, a conjunção e a disjunção lógicas.
+
+% ------- Ciclos -----------%
+
+\section{Ciclos}
+
+\paragraph{}
+
+%-------- While e Do...While -------- %
+
+\subsection{While e Do...While}
+
+\paragraph{}
+
+Para usufruir deste tipo de estrutura condicional, temos que escrever a seguinte sintaxe:
+
+\begin{quote}
+	\texttt{\textcolor{green}{while} (condition) \{...\} }
+	
+	OU
+	
+	\texttt{do \{...\} \textcolor{green}{while} (condition)}
+\end{quote}
+
+No primeiro caso, a condição do ciclo \textbf{\texttt{while}} é definida logo no início desse mesmo ciclo e é verificada sempre que se chega ao final do ciclo.
+
+No caso seguinte, a condição é verificada apenas no final do ciclo.
+
+Para que fique claro, caso entrarmos dentro de um dos ciclos, vai significar que estamos dentro de um novo contexto, isto é, todas as variáveis que forem criadas dentro desse mesmo ciclo, nunca teremos acesso a elas fora do ciclo.
+
+% ------- Ciclo For ------------- %
+
+\subsection{For}
+
+\paragraph{}
+
+Para usufruir das capacidades do ciclo \texttt{for}, temos duas possibilidades:
+
+\begin{quote}
+	\texttt{\textcolor{green}{for}(num i=0; i<10; i++) \{...\}}
+	
+	OU
+	
+	\texttt{\textcolor{green}{for} each v in l \{...\}}
+
+\end{quote}
+
+Na primeira sintaxe, é definida uma variável auxiliar para percorrer todos os valores do intervalo que está indicado. Caso a variável não sofra alterações como, por exemplo, uma instrução condicional, podemos presumir que essa mesma variável percorre todos o valores do intervalo sem qualquer problema que a impeça disso.
+
+É possível uma equivalência entre um intervalo escrito entre parêntesis e a sua semelhança quando o mesmo intervalo é escrito em linguagem destino que, no nosso caso, é em \textbf{Java}. Um exemplo simples é o que se sucede:
+
+\begin{center}
+\begin{tabular}{| c | c |}
+%\caption{Tabela de Operações}
+	\hline
+	\textbf{Configuração entre Parêntesis} & \textbf{Equivalência em Java} \\
+	\hline
+	[0, 10] 	& (num i=0; i<=10, i++) \\
+	\hline
+\end{tabular}
+\end{center}
+
+% -------- Instrução BREAK ---------- %
+
+%\subsection{Instrução \textit{break}}
+
+%\paragraph{}
+
+%Quando o utilizador/programador quer que um ciclo termine mais cedo do que o que estava estipulado, existe a instrução \textbf{\texttt{break}} que nos permite fazer isso mesmo. Esta instrução só pode ser usada apenas uma vez por cada contexto que está definido e dentro de um ciclo. Não é permitido a escrita de qualquer instrução a seguir a um \textbf{\texttt{break}}.
+
+% ---------------------------------- PALAVRAS RESERVADAS -------------------------------------- %
+
+\chapter{Palavras Reservadas}
+\label{chap.words}
+
+\paragraph{}
+
+As palavras reservadas da linguagem \textbf{\textit{Quiz}} são:
+
+\begin{itemize}
+	\item if
+	\item else
+	\item do
+	\item while
+	\item for
+	\item each
+	\item foreach
+	\item list
+	\item number
+	\item text
+	\item question
+\end{itemize}
+
+
+%\begin{figure} [h]
+%\center
+%\includegraphics[width=150px]{teste_MinHash.jpg}
+%\caption{Teste - \textit{MinHash}}
+%\end{figure}
+	
+%\begin{figure} [h]
+%\center
+%\includegraphics[width=150px]{teste1_BloomFilter.jpg}
+%\caption{Teste - \textit{Bloom Filter}}
+%\end{figure}
+
+
+
+%---------------Conclusão--------------%
+
+\chapter{Conclusão e Resultados}
+\label{chap.conclusao}
+
+\paragraph{} 
+
+Através dos conhecimentos que adquirimos ao longo deste exaustivo semestre, foi possível elaborar este projeto e distribuir de um modo mais ou menos equilibrado as tarefas que competia cada elemento deste grupo realizar. 
+As aulas práticas e teóricas foram a principal ajuda para adquirir os conhecimentos necessários, bem como toda a pesquisa envolvida.
+
+De uma maneira generalizada, os objetivos foram bem sucedidos, tendo sido concretizado o objetivo principal deste projeto: a relização de questionários interativos através de uma linguagem criada por nós, alunos / futuros engenheiros, para que seja usada por qualquer utilizador.
+
+Um agradecimento aos nossos professores, Miguel Oliveira e Silva e Artur Pereira, pela disponibilidade e por nos terem tirado dúvidas pertinentes durante as aulas práticas presenciais.
+
+
+
+%--------------Contribuicoes dos Autores-------------%
+
+\chapter{Contribuição dos Autores}
+\label{chap.autores}
+
+\paragraph{} 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}
