@@ -1,0 +1,275 @@
+//special methods
+ask(question) ::= "ask(<question>)"
+elapsed(gp) ::= "getGroupElapsedTime(<gp>)"
+allowMove(question) ::= "groupAllowMoveMap.put(<question>, false)"
+denyMove(question) ::= "groupAllowMoveMap.put(<question>, true)"
+reportAll() ::= "report()"
+
+// TODO: backend for qdb
+
+varDecl(type, name, val) ::= <<
+	<if (type)>type<endif> <name> = <val>;
+>>
+
+if(exp, stat, elsif, els) ::= <<
+	if (<if (exp)>exp<else>true<endif>){
+		<if (stat)><stat; separator=";\n"><endif>
+	} <if (elsif)><elsif; separator="\n"><endif>
+	<if (els)><els><endif>
+>>
+elsif(exp, stat) ::= <<
+	else if (<if (exp)>exp<else>true<endif>){
+		<if (stat)><stat; separator=";\n"><endif>
+	}
+>>
+else(stat) ::= <<
+	else {
+		<if (stat)><stat; separator=";\n"><endif>
+	}
+>>
+while(exp, stat) ::= <<
+	while (<if (exp)>exp<else>true<endif>) {
+		<if (stat)><stat; separator=";\n"><endif>
+	}
+>>
+dowhile(exp, stat) ::= <<
+	do {
+		<if (stat)><stat; separator=";\n"><endif>
+	} while (<if (exp)>exp<else>true<endif>)
+>>
+for(exp1, exp2, exp3, stat) ::= <<
+	for (<if (exp1)><exp1><endif>; <if (exp2)><exp2><endif>; <if (exp3)><exp3><endif>) {
+		<if (stat)><stat; separator=";\n"><endif>
+	}
+>>
+foreachList(iter, list, stat) ::= <<
+	for (Type\<?\> <iter> : <list>.getData()) {
+		<if (stat)><stat; separator=";\n"><endif>
+	}
+>>
+foreachNum(iter, max, stat) ::= <<
+	for (int i = 0; i < <max>; i++) {
+		<if (stat)><stat; separator=";\n"><endif>
+	}
+>>
+
+expEq(a, b) ::= "Calculator.eq(<a>, <b>)"
+expLt(a, b) ::= "Calculator.lt(<a>, <b>)"
+expGt(a, b) ::= "Calculator.gt(<a>, <b>)"
+expLe(a, b) ::= "Calculator.le(<a>, <b>)"
+expGe(a, b) ::= "Calculator.ge(<a>, <b>)"
+expAnd(a, b) ::= "Calculator.and(<a>, <b>)"
+expOr(a, b) ::= "Calculator.or(<a>, <b>)"
+expPreInc(a) ::= "((NumberType) <a>).preInc()"
+expPostInc(a) ::= "((NumberType) <a>).postInc()"
+expPreDec(a) ::= "((NumberType) <a>).preDec()"
+expPostDec(a) ::= "((NumberType) <a>).postDec()"
+expAdd(a, b) ::= "Calculator.add(<a>, <b>)"
+expSub(a, b) ::= "Calculator.sub(<a>, <b>)"
+expMult(a, b) ::= "Calculator.mul(<a>, <b>)"
+expDiv(a, b) ::= "Calculator.div(<a>, <b>)"
+expParenthesis(exp) ::= "(<exp>)"
+expInvert(exp) ::= "Calculator.invert(<exp>)"
+//varDecl===
+declTime(name, val) ::= "TimeType <name> = <val>;"
+declNum(name, val) ::= "NumberType <name> = <val>;"
+declText(name, val) ::= "TextType <name> = <val>;"
+declList(name, val) ::= "ListType<?> <name> = <val>;"
+declQuestion(name, val) ::= "QuestionType <name> = <val>;"
+declReassign(name, val) ::= "<name> = <val>"
+//==========
+propertyAccess(obj, prop) ::= "<obj><property(prop)>"
+property(name) ::= ".property(<name>)"
+mcall(method, param) ::= <<Methods.call(<method>, <param>)>>
+
+expIndex(list, index) ::= "<list><index>"
+
+tuple(elem) ::= <<new ListType<?>(null, <elem; separator=",">)>>
+
+index(low, high, step) ::= ".subList(new int[] {<if (low)><low><else>0<endif>, <if (high)><high><else>-1<endif>, <if (step)><step><else>0<endif>})"
+
+time(exp, mod) ::= "new TimeType(<exp>, <mod>, null)"
+num(n) ::= "new NumberType(<n>, null)"
+text(text) ::= "new TextType(<text>, null)"
+id(varName) ::= "<varName>"
+
+question(id, q, type, groups, depend, ans, correct) ::= <<
+	registerQ(
+		new QuestionType(
+				<if (id)>id<else>null<endif>,
+				<if (q)>q<else>null<endif>,
+				<if (type)>type<else>null<endif>,
+				<if (groups)>groups<else>null<endif>,
+				<if (depend)>depend<else>null<endif>,
+				<if (ans)>ans<else>null<endif>,
+				<if (correct)>correct<else>null<endif>,
+			, null)
+		)
+	)
+>>
+
+main(qdb, stat) ::= <<
+package CLI;
+
+import question.Question;
+import types.*;
+
+import java.io.filewriter;
+import java.io.ioexception;
+import java.util.*;
+import java.util.stream.collectors;
+
+
+/**
+ * para o cli é preciso:
+ * - módulo de io, para dar output (mediante o tipo de pergunta) e recolher respostas
+ * - interface para que o programa compilado possa interagir com o cli
+ **/
+public class cli {
+
+    private static string reportname;
+
+    private static final map\<string, boolean\> groupallowmovemap = new hashmap<>();
+    private static final list\<questionType\> questions = new ArrayList<>();
+
+    private static QuestionType current = null;
+
+    public static void main(String[] args) {
+        /*
+        groupAllowMoveMap must be set at the beginning of the script and updated when new questions are created.
+        When questions are created they need to be added to the questions set.
+        When "ans" is called, current should be set to the current question, on end it should be set to null.
+         */
+
+         <qdb; separator=";\n">
+
+         <stat; separator=";\n">
+    }
+
+    public static QuestionType registerQ(QuestionType q) {
+        questions.add(q);
+        return q;
+    }
+
+    public static void ask(QuestionType questionType) {
+        current = questionType;
+        final Scanner sc = new Scanner(System.in);
+
+        System.out.println(current.property("present"));
+
+        System.out.println(current.getData().getPresentation());
+
+        while (true) {
+            System.out.println("Answer: ");
+            long time = System.currentTimeMillis();
+            String line = sc.nextLine();
+            time = time - System.currentTimeMillis();
+
+            if (line.equals("--fwd")) {
+                if (!canMove(current)) {
+                    System.err.println("You cannot move!");
+                    continue;
+                }
+                forward();
+                continue;
+            } else if (line.equals("--bck")) {
+                if (!canMove(current)) {
+                    System.err.println("You cannot move!");
+                    continue;
+                }
+                backward();
+                continue;
+            } else if (line.startsWith("--")) {
+                System.err.println("Unrecognized command");
+                continue;
+            }
+
+            final List\<String\> depIds = current.getData().getDependencies();
+
+            final List\<String\> allIds = questions.stream().map(QuestionType::getData).map(Question::getId).collect(Collectors.toList());
+            if (!(allIds.containsAll(depIds) &&
+                    questions.stream()
+                            .map(QuestionType::getData)
+                            .filter(q -> depIds.contains(q.getId()))
+                            .allMatch(q -> q.getUserAnswer() != null))) {
+                System.err.println("You don't meet all dependencies to answer this question!");
+                continue;
+            }
+
+            if (!current.getData().answer(new TextType(line, null), time)) {
+                System.err.println("Invalid answer!");
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    private static void backward() {
+        int currI = questions.indexOf(current);
+
+        for (int i = (currI + 1) % questions.size(); i != currI; i = (i - 1) % questions.size())
+            for (String gp : current.getData().getGroups()) {
+                final QuestionType q = questions.get(i);
+                if (q.getData().getGroups().contains(gp)) {
+                    current = q;
+                    break;
+                }
+            }
+    }
+
+    private static void forward() {
+        int currI = questions.indexOf(current);
+
+        for (int i = (currI + 1) % questions.size(); i != currI; i = (i + 1) % questions.size())
+            for (String gp : current.getData().getGroups()) {
+                final QuestionType q = questions.get(i);
+                if (q.getData().getGroups().contains(gp)) {
+                    current = q;
+                    break;
+                }
+            }
+    }
+
+    private static boolean canMove(QuestionType question) {
+        return question.getData().getGroups().stream().allMatch(groupAllowMoveMap::get);
+    }
+
+    public static void report() throws IOException {
+
+        final FileWriter fw = new FileWriter(reportName);
+
+        questions.stream()
+                .map(QuestionType::getData)
+                .filter(question -> question.getUserAnswer() != null)
+                .forEach(question -> {
+                    try {
+                        fw.append(question.getReport());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+
+        fw.close();
+
+    }
+
+    public static long getGroupElapsedTime(String group) {
+        return questions.stream()
+                .map(QuestionType::getData)
+                .filter(q -> q.getGroups().contains(group))
+                .mapToLong(Question::getElapsed)
+                .sum();
+    }
+
+    private static List\<String\> buildStrList(String... ss) {
+        final List\<String\> built = new ArrayList<>();
+
+        for (int i = 0; i \< ss.length; i++)
+            built.add(ss[i]);
+
+        return built;
+    }
+
+}
+>>

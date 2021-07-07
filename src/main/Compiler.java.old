@@ -1,0 +1,847 @@
+package main;
+
+import org.stringtemplate.v4.*;
+import java.util.*;
+
+import question.Question;
+import question.QuestionTypes;
+import types.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class Compiler extends QuizBaseVisitor<ST> {
+
+   private STGroup templates = new STGroupFile("src/main/Compiler/StringTemplates.stg");
+   private int ansCount = 1;
+   private String quizName;
+   private HashMap<String, String> varType = new HashMap<>();
+   private String[] types = {"Question", "ArrayList<Question>", "DataBase"};
+   private HashMap<String, HashMap<String, String>> themeName = new HashMap<>();
+   private boolean visit = true;
+   private String type = "";
+   private String quizType = "";
+
+   //Getters
+   public String getQuizName() {return this.quizName;}
+   public String getType() {return this.type;}
+   public boolean getVisit() {return this.visit;}
+   public String getQuizType() {return this.quizType;}
+
+   @Override public ST visitMain(QuizParser.MainContext ctx) {
+      //return visitChildren(ctx);
+
+      ST res = templates.getInstanceOf("module");
+       final Iterator<QuizParser.StatContext> it = ctx.stat().iterator();
+       while (it.hasNext()) {
+         res.add("stat", visit(it.next()).render());
+      }
+      this.quizName = ctx.ID().render();
+      return res;
+   }
+
+   @Override public ST visitStatQuestionStat(QuizParser.StatQuestionStatContext ctx) {
+      //return visitChildren(ctx);
+
+      ST res = templates.getInstanceOf("QuestionStats");
+      res.add("stat", visitChildren(ctx));
+      return res;
+
+   }
+
+   @Override public ST visitStatVariableDecl(QuizParser.StatVariableDeclContext ctx) {
+      //return visitChildren(ctx);
+
+      ST res = templates.getInstanceOf("stats");
+      res.add("stat", visit(ctx.varDecl()));
+      return res;
+      
+   }
+
+   @Override public ST visitStatMcall(QuizParser.StatMcallContext ctx) {
+      //return visitChildren(ctx.McallContext());
+
+      ST res = templates.getInstanceOf("stats");
+      res.add("stat", visit(ctx.mcall()));
+      return res;
+
+   }
+
+   @Override public ST visitStatPropertyStat(QuizParser.StatPropertyStatContext ctx) {
+      //return visitChildren(ctx.StatPropertyStatContext());
+
+      ST res = templates.getInstanceOf("stats");
+      res.add("stat", visit(ctx.propertyAcess()));
+      return res;
+
+   }
+
+   @Override public ST visitStatFluxControl(QuizParser.StatFluxControlContext ctx) {
+      //return visitChildren(ctx.FluxCtrlContext());
+
+      ST res = templates.getInstanceOf("stats");
+      res.add("stat", visit(ctx.fluxCtrl()));
+      return res;
+
+   }
+
+   @Override public ST visitStatExp(QuizParser.StatExpContext ctx) {
+      //return visitChildren(ctx.StatExpContext());
+
+      ST res = templates.getInstanceOf("stats");
+      res.add("stat", visit(ctx.exp()));
+      return res;
+
+   }
+
+   @Override public ST visitQdb(QuizParser.QdbContext ctx) {
+      return visitChildren(ctx);
+// TODO: 6/18/21 this
+      /*
+      final ST qCorrect = ctx.corr == null ? null : ((ST[]) visit(ctx.qcorrect()))[1];
+
+        if (qCorrect != null)
+            System.out.println(qCorrect.getClass().getName() + " " + (qCorrect == null || qCorrect instanceof String) + " " + (qCorrect == null || qCorrect instanceof List));
+
+        final QuestionTypes type;
+        switch (ctx.ID().getText()) {
+            case "multiple":
+                type = QuestionTypes.MULTIPLE_ANS;
+                break;
+            case "match":
+                type = QuestionTypes.MATCHING;
+                break;
+            case "short":
+                type = QuestionTypes.SHORT;
+                break;
+            case "numeric":
+                type = QuestionTypes.NUMERIC;
+                break;
+            case "long":
+                type = QuestionTypes.LONG;
+                break;
+            default:
+                return null;
+        }
+
+        return new QuestionType(new Question(
+         null,
+         ctx.q == null ? null : ctx.q.getText(),
+         type,
+         ctx.dep == null ? null : (List<Question>) ((ListType<?>) visit(ctx.dep)).getData(),
+         ctx.gp == null ? null : (List<String>) ((ListType<?>) visit(ctx.gp)).getData(),
+         ctx.ans == null ? null : (List<String>) ((ListType<?>) visit(ctx.ans)).getData(),
+         qCorrect == null || qCorrect instanceof String ? null : (List<String>) qCorrect,
+         qCorrect == null || qCorrect instanceof List ? null : (String) qCorrect,
+         null, null),
+         null);
+*/
+   }
+
+   @Override public ST visitQuestion(QuizParser.QuestionContext ctx) {
+      //return visitChildren(ctx);
+
+      ST res = templates.getInstanceOf("Question");
+      res.add("stat", visitChildren(ctx));
+      return res;
+   }
+
+   @Override public ST visitVarDecl(QuizParser.VarDeclContext ctx) {
+      //return visitChildren(ctx);
+
+      // reassignment
+      if (ctx.type == null) {
+
+         final ST var = visit(ctx.propertyAcess());
+
+         // if it was already declared
+         if (var == null) {
+             return null;
+         }
+
+         // wrong type
+         try {
+             final Type newVar = Cast.cast((Type<?>) visit(ctx.exp()), var.getType());
+
+             if (newVar == null) {
+                 System.err.println("Wrong type: cannot cast '" + ctx.exp().getText() + "' into '" + var.getType().name() + "'");
+                 return null;
+             }
+
+             var.setData(newVar.getData());
+             return newVar;
+         } catch (NumberFormatException e) {
+             System.err.println("Wrong type: cannot cast '" + ctx.exp().getText() + "' into '" + var.getType().name() + "'");
+             return null;
+         }
+     }
+
+     // initialization
+
+     // check if type is valid
+     switch (ctx.type.getText()) {
+         case "num":
+         case "text":
+         case "list":
+         case "question":
+         case "time":
+             break;
+         default:
+             return null;
+     }
+
+     final Type<?> var = (Type<?>) visit(ctx.propertyAcess());
+
+     // it was already declared
+     if (var != null) {
+         return null;
+     }
+
+     // if exp type is not the variable type
+     try {
+
+         final Type<?> newVar = ctx.question() == null ? (
+                 ctx.time() == null ?
+                         Cast.cast((Type<?>) visit(ctx.exp()), Types.get(ctx.type.getText())) :
+                         (TimeType) visit(ctx.time())
+         ) :
+                 (QuestionType) visit(ctx.question());
+
+         if (newVar == null) {
+             System.err.println("Wrong type: cannot cast '" + ctx.exp().getText() + "' into '" + ctx.type.getText() + "'");
+             return null;
+         }
+
+         newVar.setName(ctx.name.getText());
+//         variables.registerVar(newVar);
+         return newVar;
+     } catch (NumberFormatException e) {
+         System.err.println("Wrong type: cannot cast '" + ctx.exp().getText() + "' into '" + ctx.type.getText() + "'");
+         return null;
+     }
+   }
+
+   @Override public ST visitMcall(QuizParser.McallContext ctx) {
+      //return visitChildren(ctx);
+
+      final String foo = ctx.ID().getText();
+
+      final ST visit = ctx.exp() == null ? null : visit(ctx.exp());
+      //final ST res = templates.getInstanceOf("module");
+      final Type<?> param = (Type<?>) visit;
+
+      Type<?> res = Methods.call(foo, param);
+
+      return res;
+   }
+
+   @Override public ST visitQans(QuizParser.QansContext ctx) {
+      //return visitChildren(ctx);
+
+      final ListType<?> ans = (ListType<?>) visit(ctx.list());
+
+      return ans;
+   }
+
+   @Override public ST visitCorNotLong(QuizParser.CorNotLongContext ctx) {
+      //return visit(ctx.CorNotLongContext());
+      //return visit(ctx.visitCorNotLong());
+
+      ST res = templates.getInstanceOf("CorNotLong");
+      res.add("value", visit(ctx.list()));
+      return res;
+
+   }
+
+   @Override public ST visitCorLong(QuizParser.CorLongContext ctx) {
+      //return visit(ctx.CorLongContext());
+
+      ST res = templates.getInstanceOf("CorLong");
+       // TODO: 6/18/21 Possible error down here
+      res.add("value", ctx.ID() == null ? ctx.String() : ctx.ID());
+      return res;
+
+   }
+
+   @Override public ST visitPropertyAcess(QuizParser.PropertyAcessContext ctx) {
+      //return visit(ctx.StatPropertyStatContext());
+
+      ST res = templates.getInstanceOf("PropertyAccess");
+      res.add("value", visit(ctx.StatPropertyStatContext()));
+      return res;
+
+   }
+
+   @Override public ST visitFluxCtrl(QuizParser.FluxCtrlContext ctx) {
+//      return visit(ctx.StatFluxControlContext());
+
+      ST res = templates.getInstanceOf("FluxCtrl");
+      res.add("value", visitChildren(ctx));
+      return res;
+
+   }
+
+   @Override public ST visitIf_(QuizParser.If_Context ctx) {
+      //return visit(ctx.If_Context());
+
+      ST res = templates.getInstanceOf("if_");
+      res.add("stat", visit(ctx.ifBlock()));
+      return res;    
+
+   }
+
+   @Override public ST visitElsif(QuizParser.ElsifContext ctx) {
+      //return visit(ctx.ElsifContext());
+
+      ST res = templates.getInstanceOf("elsif");
+      res.add("stat", visit(ctx.elsifBlock()));
+      return res;
+
+    }
+
+   @Override public ST visitElse_(QuizParser.Else_Context ctx) {
+      //return visit(ctx.Else_Context());
+
+      ST res = templates.getInstanceOf("else_");
+      res.add("stat", visit(ctx.elseBlock()));
+      return res;
+
+   }
+
+   @Override public ST visitWhile_(QuizParser.While_Context ctx) {
+      //return visit(ctx.While_Context());
+
+      ST res = templates.getInstanceOf("while_");
+      res.add("stat", visit(ctx.whileBlock()));
+      return res;
+
+   }
+
+   @Override public ST visitDowhile(QuizParser.DowhileContext ctx) {
+      //return visit(ctx.DowhileContext());
+
+      ST res = templates.getInstanceOf("dowhile");
+      res.add("stat", visit(ctx.doWhileBlock()));
+      return res;
+
+   }
+
+   @Override public ST visitFor_(QuizParser.For_Context ctx) {
+      //return visit(ctx.For_Context());
+
+      ST res = templates.getInstanceOf("for_");
+      res.add("stat", visit(ctx.forBlock()));
+      return res;
+
+   }
+
+   @Override public ST visitForeach(QuizParser.ForeachContext ctx) {
+      //return visit(ctx.ForeachContext());
+
+      ST res = templates.getInstanceOf("foreach");
+      res.add("stat", visit(ctx.foreachBlock()));
+      return res;
+
+   }
+
+   @Override public ST visitMulti(QuizParser.MultiContext ctx) {
+      //return visitChildren(ctx);
+
+   }
+
+   @Override public ST visitSingle(QuizParser.SingleContext ctx) {
+      return visitChildren(ctx);
+   }
+
+   @Override public ST visitExpNum(QuizParser.ExpNumContext ctx) {
+      return NumberType(ctx.Num().getText(), null);
+   }
+
+   @Override public ST visitExpLogicAndOr(QuizParser.ExpLogicAndOrContext ctx) {
+      //return visitChildren(ctx);
+
+      /*
+      final Type<?> a = (Type<?>) visit(ctx.exp(0));
+        final Type<?> b = (Type<?>) visit(ctx.exp(1));
+      */
+
+        ST res = templates.getInstanceOf("operation");
+
+        if (ctx.exp(0) == null || ctx.exp(1) == null) {
+            return null;
+        }
+
+        switch (ctx.op.getText()) {
+            case "&&":
+                res.add("elem1", visit(ctx.mathExpr(0)));
+                res.add("op", ctx.op.getText());
+                res.add("elem2", visit(ctx.mathExpr(1)));
+                return Calculator.and(a, b);
+
+            case "||":
+                res.add("elem1", visit(ctx.mathExpr(0)));
+                res.add("op", ctx.op.getText());
+                res.add("elem2", visit(ctx.mathExpr(1)));
+                return Calculator.or(a, b);
+
+            default:
+                return null;
+        }
+
+        return res;
+
+   }
+
+   @Override public ST visitExpIndex(QuizParser.ExpIndexContext ctx) {
+      //return visitChildren(ctx);
+
+      final Type<?> a = (Type<?>) visit(ctx.exp());
+        final int[] indexes = (int[]) visit(ctx.listIndex());
+
+        if (a.getType() != Types.TEXT && a.getType() != Types.LIST) {
+            System.err.println("Incompatible types: cannot index unless it is 'text' or 'list'");
+        }
+
+        switch (a.getType()) {
+            case TEXT:
+                return ((TextType) a).subString(indexes);
+            case LIST:
+                return ((ListType<?>) a).subList(indexes);
+            default:
+                return null;
+        }
+
+   }
+
+   @Override public ST visitExpMcall(QuizParser.ExpMcallContext ctx) {
+      return visitChildren(ctx.McallContext());
+   }
+
+   @Override public ST visitExpPreInc(QuizParser.ExpPreIncContext ctx) {
+      //return visitChildren(ctx);
+
+      final Type<?> a = (Type<?>) visit(ctx.exp());
+
+        if (a.getType() != Types.NUMBER) {
+            System.err.println("Incompatible types: cannot increment or decrement '" + a.getName() + "', is not 'num'.");
+        }
+
+        switch (ctx.op.getText()) {
+            case "++":
+                ((NumberType) a).add(new NumberType(1, null));
+            case "--":
+                ((NumberType) a).sub(new NumberType(1, null));
+        }
+
+        return a;
+
+   }
+
+   @Override public ST visitExpMulDiv(QuizParser.ExpMulDivContext ctx) {
+      //return visitChildren(ctx);
+
+      ST res = templates.getInstanceOf("operation");
+      res.add("elem1", visit(ctx.exp(0)));
+      res.add("op", ctx.op.getText());
+      res.add("elem2", visit(ctx.exp(1)));
+      return res;
+
+    }
+
+   @Override public ST visitExpPostInc(QuizParser.ExpPostIncContext ctx) {
+      //return visitChildren(ctx);
+
+      //final Type<?> a = (Type<?>) visit(ctx.exp());
+
+        ST res = templates.getInstanceOf("operation");
+
+        if (a.getType() != Types.NUMBER) {
+            System.err.println("Incompatible types: cannot increment or decrement '" + a.getName() + "', is not 'num'.");
+        }
+
+        switch (ctx.op.getText()) {
+            case "++":
+                res.add("elem1", visit(ctx.exp(0)));
+                res.add("op", ctx.op.getText());
+                res.add("elem2", visit(ctx.exp(1)));
+                ((NumberType) a).add(new NumberType(1, null));
+
+            case "--":
+                res.add("elem1", visit(ctx.exp(0)));
+                res.add("op", ctx.op.getText());
+                res.add("elem2", visit(ctx.exp(1)));
+                ((NumberType) a).sub(new NumberType(1, null));
+        }
+
+        // Since the operation is made with the non incremented value, we need a new variable with the right value
+        switch (ctx.op.getText()) {
+            case "++":
+                res.add("elem1", visit(ctx.exp(0)));
+                res.add("op", ctx.op.getText());
+                res.add("elem2", visit(ctx.exp(1)));
+                return (new NumberType(((NumberType) a).getData(), null)).sub(new NumberType(1, null));
+            
+                case "--":
+                res.add("elem1", visit(ctx.exp(0)));
+                res.add("op", ctx.op.getText());
+                res.add("elem2", visit(ctx.exp(1)));
+                return (new NumberType(((NumberType) a).getData(), null)).add(new NumberType(1, null));
+            
+                default:
+                return null;
+        }
+
+        return res;
+
+   }
+
+   @Override public ST visitExpUnary(QuizParser.ExpUnaryContext ctx) {
+      //return visitChildren(ctx);
+
+      ST res = templates.getInstanceOf("ExpUnary");
+
+      //final Type<?> a = (Type<?>) visit(ctx.exp());
+
+        if (ctx.getType() == Types.QUESTION) {
+            System.err.println("Incompatible types: cannot invert '" + ctx.getName() + "', it is 'question'.");
+        }
+
+        switch (ctx.getType()) {
+            case NUMBER:
+                //return new NumberType(-((NumberType) a).getData(), null);
+                res.add("elem", NumberType(-((NumberType) a).getData(), null));
+            case TEXT:
+                //return new TextType(new StringBuilder(((TextType) a).getData()).reverse().toString(), null);
+                res.add("elem", TextType(new StringBuilder(((TextType) a).getData()).reverse().toString(), null));
+            case LIST:
+                //return ((ListType<?>) a).getReversed();
+                res.add("elem", res.getReversed());
+            default:
+                return null;
+        }
+
+        return res;
+
+   }
+
+   @Override public ST visitExpAddSub(QuizParser.ExpAddSubContext ctx) {
+      //return visitChildren(ctx);
+    /*
+      final Type<?> a = (Type<?>) visit(ctx.exp(0));
+        final Type<?> b = (Type<?>) visit(ctx.exp(1));
+    */
+        ST res = templates.getInstanceOf("operation");
+
+        try {
+            /*
+            switch (ctx.op.getText()) {
+                case "+":
+                    return Calculator.add(a, b);
+                case "-":
+                    return Calculator.sub(a, b);
+                default:
+                    throw new NullPointerException();
+            }*/
+
+            res.add("elem1", visit(ctx.exp(0)));
+            res.add("op", ctx.op.getText());
+            res.add("elem2", visit(ctx.exp(1)));
+            return res;
+
+        } catch (NumberFormatException e1) {
+            System.err.println("Impossible cast: cannot cast '" +
+                    (a.getType() == Types.TEXT ? a.getName() : b.getName()) +
+                    "' to 'num'");
+        } catch (NullPointerException e2) {
+            System.err.println("Incompatible types: cannot add or subtract '" + a.getName() + "' and '" + b.getName() + "'.");
+        }
+
+        return null;
+
+   }
+
+   @Override public ST visitExpComp(QuizParser.ExpCompContext ctx) {
+      //return visitChildren(ctx);
+
+      final Type<?> a = (Type<?>) visit(ctx.exp(0));
+        final Type<?> b = (Type<?>) visit(ctx.exp(1));
+
+        try {
+
+            /*
+            switch (ctx.op.getText()) {
+                case "==":
+                    return Calculator.eq(a, b);
+                case "<":
+                    return Calculator.lt(a, b);
+                case ">":
+                    return Calculator.gt(a, b);
+                case "<=":
+                    return Calculator.le(a, b);
+                case ">=":
+                    return Calculator.ge(a, b);
+                default:
+                    throw new NullPointerException();
+            }*/
+
+            res.add("elem1", visit(ctx.exp(0)));
+            res.add("op", ctx.op.getText());
+            res.add("elem2", visit(ctx.exp(1)));
+            return res;
+
+        } catch (NumberFormatException e1) {
+            System.err.println("Impossible cast: cannot cast to num");
+
+        } catch (NullPointerException e2) {
+            if (ctx.exp(0) == null | ctx.exp(1) == null)
+                System.err.println("Incompatible types: cannot compare");
+            else
+                System.err.println("Incompatible types: cannot compare '" + ctx.exp(0) + "' and '" + ctx.exp(1) + "'.");
+        }
+
+        return null;
+
+   }
+
+   @Override public ST visitExpPAccess(QuizParser.ExpPAccessContext ctx) {
+      //return visitChildren(ctx.propertyAcess());
+
+      ST res = templates.getInstanceOf("PAccess");
+      res.add("value", visit(ctx.propertyAcess()));
+      return res;
+
+   }
+
+   @Override public ST visitExpListTuple(QuizParser.ExpListTupleContext ctx) {
+      //return visitChildren(ctx);
+
+      //return ctx.list() == null ? visit(ctx.tuple()) : visit(ctx.list());
+
+      ST res = templates.getInstanceOf("ExpPAccess");
+      res.add("value", visit(ctx.list() == null ? visit(ctx.tuple()) : visit(ctx.list())));
+      return res;
+
+   }
+
+   @Override public ST visitExpParenthesis(QuizParser.ExpParenthesisContext ctx) {
+      //return visitChildren(ctx.exp());
+
+      ST res = templates.getInstanceOf("parenth");
+      res.add("value", visit(ctx.exp()));
+      return res;
+
+   }
+
+   @Override public ST visitExpVarAccess(QuizParser.ExpVarAccessContext ctx) {
+      //return visitChildren(ctx);
+
+      ST res = templates.getInstanceOf("ExpVarAccess");
+      res.add("value", visitChildren(ctx));
+      return res;
+
+   }
+
+   @Override public ST visitExpDecl(QuizParser.ExpDeclContext ctx) {
+      //return visitChildren(ctx);
+      //return visit(ctx.varDecl());
+
+      ST res = templates.getInstanceOf("ExpDecl");
+      res.add("value", visit(ctx.varDecl()));
+      return res;
+
+   }
+
+   @Override public ST visitExpString(QuizParser.ExpStringContext ctx) {
+      //return visitChildren(ctx);
+      //return new TextType(ctx.String().getText().substring(1, ctx.String().getText().length() - 1), null);
+
+      ST res = templates.getInstanceOf("ExpString");
+      res.add("value", TextType(ctx.String().getText().substring(1, ctx.String().getText().length() - 1), null));
+      return res;
+
+   }
+
+   @Override public ST visitList(QuizParser.ListContext ctx) {
+      //return visitChildren(ctx);
+      /*return new ListType<>(ctx.lstElem().stream()
+                .map(lstElemContext -> ((Type<?>) visit(lstElemContext)))
+                .collect(Collectors.toList()),
+                null);*/
+
+        ST res = templates.getInstanceOf("List");
+        res.add("value", new ListType<>(ctx.lstElem().stream()
+                        .map(lstElemContext -> ((Type<?>) visit(lstElemContext)))
+                        .collect(Collectors.toList()),
+                        null));
+        return res;     
+
+   }
+
+   @Override public ST visitTuple(QuizParser.TupleContext ctx) {
+      //return visitChildren(ctx);
+      /*return new ListType<Type<?>>(
+                ctx.exp().stream()
+                        .map(this::visit)
+                        .map(o -> (Type<?>) o)
+                        .collect(Collectors.toList()),
+                null);*/
+
+        ST res = templates.getInstanceOf("Tuple");
+        res.add("value", new ListType<Type<?>>(
+                            ctx.exp().stream()
+                            .map(this::visit)
+                            .map(o -> (Type<?>) o)
+                            .collect(Collectors.toList()),
+                            null));
+        return res;
+
+   }
+
+   @Override public ST visitLstTuple(QuizParser.LstTupleContext ctx) {
+      //return visitChildren(ctx);
+      //return visit(ctx.tuple());
+
+      ST res = templates.getInstanceOf("LstTuple");
+      res.add("value", visit(ctx.tuple()));
+      return res;
+
+   }
+
+   @Override public ST visitLstNum(QuizParser.LstNumContext ctx) {
+      //return visitChildren(ctx);
+
+      try {
+         //return new NumberType(Double.parseDouble(ctx.getText()), null);
+
+            ST res = templates.getInstanceOf("LstNum");
+            res.add("value", new NumberType(Double.parseDouble(ctx.getText()), null));
+            return res;
+
+      } catch (NumberFormatException e) {
+         System.err.println("Invalid number: " + ctx.getText());
+         return null;
+      }
+
+   }
+
+   @Override public ST visitLstVar(QuizParser.LstVarContext ctx) {
+      //return visitChildren(ctx);
+
+      //return variables.getVariable(ctx.getText());
+
+      ST res = templates.getInstanceOf("LstVar");
+      res.add("value", variables.getVariable(ctx.getText()));
+      return res;
+
+   }
+
+   @Override public ST visitLstStr(QuizParser.LstStrContext ctx) {
+      //return visitChildren(ctx);
+      //return new TextType(ctx.String().getText().substring(1, ctx.String().getText().length() - 1), null);
+
+      ST res = templates.getInstanceOf("LstVar");
+      res.add("value", TextType(ctx.String().getText().substring(1, ctx.String().getText().length() - 1), null));
+      return res;
+   
+   }
+
+   @Override public ST visitSingleIndex(QuizParser.SingleIndexContext ctx) {
+      //return visitChildren(ctx);
+
+      ST res = templates.getInstanceOf("SingleIndex");
+
+      try {
+        /*
+         return new int[]{
+                 ctx.exp() == null ? 0 : ((((NumberType) Cast.cast((Type<?>) visit(ctx.exp()), Types.NUMBER)).getData().intValue())),
+                 ctx.exp() == null ? 0 : (((NumberType) Cast.cast((Type<?>) visit(ctx.exp()), Types.NUMBER)).getData().intValue()),
+                 0};*/
+                 res.add("value", new int[]{
+                                ctx.exp() == null ? 0 : ((((NumberType) Cast.cast((Type<?>) visit(ctx.exp()), Types.NUMBER)).getData().intValue())),
+                                ctx.exp() == null ? 0 : (((NumberType) Cast.cast((Type<?>) visit(ctx.exp()), Types.NUMBER)).getData().intValue()),
+                                0});
+     } catch (NumberFormatException e1) {
+         System.err.println("Incompatible types: cannot use floating point numbers for indexing");
+     } catch (NullPointerException | ClassCastException e2) {
+         System.err.println("Incompatible types: indexing variable type must be 'num'");
+     }
+
+     return null;
+
+   }
+
+   @Override public ST visitRangeIndex(QuizParser.RangeIndexContext ctx) {
+      //return visitChildren(ctx);
+
+      ST res = templates.getInstanceOf("SingleIndex");
+
+      try {
+         /*return new int[]{
+                 ctx.low == null ? 0 : (((NumberType) Cast.cast((Type<?>) visit(ctx.low), Types.NUMBER)).getData().intValue()),
+                 ctx.high == null ? -1 : (((NumberType) Cast.cast((Type<?>) visit(ctx.high), Types.NUMBER)).getData().intValue()),
+                 0};*/
+            res.add("value", new int[]{
+                                ctx.low == null ? 0 : (((NumberType) Cast.cast((Type<?>) visit(ctx.low), Types.NUMBER)).getData().intValue()),
+                                ctx.high == null ? -1 : (((NumberType) Cast.cast((Type<?>) visit(ctx.high), Types.NUMBER)).getData().intValue()),
+                                0});
+     } catch (NumberFormatException e) {
+         System.err.println("Incompatible types: cannot use floating point numbers for indexing");
+     } catch (NullPointerException e) {
+         System.err.println("Incompatible types: indexing variable type must be 'num'");
+     }
+
+     return null;
+
+   }
+
+   @Override public ST visitStepIndex(QuizParser.StepIndexContext ctx) {
+      //return visitChildren(ctx);
+
+      ST res = templates.getInstanceOf("StepIndex");
+
+      try {
+         /*return new int[]{
+                 ctx.low == null ? 0 : (((NumberType) Cast.cast((Type<?>) visit(ctx.low), Types.NUMBER)).getData().intValue()),
+                 ctx.high == null ? -1 : (((NumberType) Cast.cast((Type<?>) visit(ctx.high), Types.NUMBER)).getData().intValue()),
+                 ctx.step == null ? 0 : (((NumberType) Cast.cast((Type<?>) visit(ctx.step), Types.NUMBER)).getData().intValue())
+         };*/
+
+         res.add("value", new int[]{
+                        ctx.low == null ? 0 : (((NumberType) Cast.cast((Type<?>) visit(ctx.low), Types.NUMBER)).getData().intValue()),
+                        ctx.high == null ? -1 : (((NumberType) Cast.cast((Type<?>) visit(ctx.high), Types.NUMBER)).getData().intValue()),
+                        ctx.step == null ? 0 : (((NumberType) Cast.cast((Type<?>) visit(ctx.step), Types.NUMBER)).getData().intValue())
+                        });
+     } catch (NumberFormatException e) {
+         System.err.println("Incompatible types: cannot use floating point numbers for indexing");
+     } catch (NullPointerException e) {
+         System.err.println("Incompatible types: indexing variable type must be 'num'");
+     }
+
+     return null;
+
+   }
+
+   @Override public ST visitTime(QuizParser.TimeContext ctx) {
+      //return visitChildren(ctx);
+
+      final Type<?> time = (Type<?>) visit(ctx.exp());
+
+        if (time.getType() != Types.NUMBER) {
+            System.err.println("Incompatible types: expression for time must be a number");
+            return null;
+        }
+
+        switch (ctx.mod.getText()) {
+            case "s":
+                return new TimeType((int) ((double)time.getData()), TimeModifiers.SECONDS, null);
+            case "m":
+                return new TimeType((int) ((double)time.getData()), TimeModifiers.MINUTES, null);
+            case "h":
+                return new TimeType((int) ((double)time.getData()), TimeModifiers.HOURS, null);
+            default:
+                System.err.println("Unknown time constant '" + ctx.mod.getText() + "', possible values are 's', 'm' and 'h'");
+                return null;
+        }
+
+   }
+}
