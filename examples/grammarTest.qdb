@@ -1,0 +1,95 @@
+# types.Type may not be required, as it can be infered from the answer.
+
+#ID : question {
+#	[group1, group2, group3, ...];
+#	[depend1, depend2, ...];
+#	<multiple|match|numeric|short|long>;
+#	<possible answers>
+#	<correct>
+#}
+
+# DEFAULTS:
+# group: {}
+# depend: {}
+# type: (there is no default, it's mandatory)
+# ans: {} 
+# correct: {} (no answer is correct)
+
+# First 3 lines are of arbitrary position,
+# last 2 must be ans and correct
+
+# In compilation, lines get distinguished by their contents.
+# 	one reserved word? type
+#	all question names? depend
+#	at least one is not q name? groups
+#	
+#	multiple: biggest tuple ans, other correct
+#	match: tuple of pair tuples: correct, other ans
+#	others: no ans, correct is the last line
+
+empty : "" {"short";} # type needs to be declared
+
+Test1 : "Which one is correct?"{
+	"test", "meta";
+	"multiple";
+	{"tuple"; "with"; "possible"; "ans"};
+	{"tuple"} # The correct answer(s)
+}
+
+# Match with more than 2 groups would require a more complex syntax, should it be implemented?
+Test2 : "Connect the right pairs"{
+	"test2", "meta";
+	"Test1";
+	"match";
+	{
+		{"First"; "group"}; 
+		{"Second"; "group"}
+	};
+	{
+		{"First"; "Second"};
+		{"group"; "group"}
+	}
+}
+
+Short1 : "Write a word" {
+	"meta";
+	"Test1", "Test2";
+	"short";
+	# No possible answers
+	{10; ".*"} # Regex to validate the answer and the word limit
+}
+
+Long1 : "Describe your thoughts" {
+	"meta";
+	"Short1";
+	"long";
+	".*" # No word restrictions, should it be implemented?
+}
+
+# Define multiple answer modes for same question
+# On .quest, this can be utilized with:
+# 	q.present.<type> = ... # change presentation for type
+# 	q.report.<type> = ... #...
+# 	ask q <type>; # ask question
+#
+# 	This can also be implemented by copy pasting the question and changing the id, answer and correct fields with no more work and complexification of the languages, to be discussed
+
+#Multi1 : "Answer this thing" {
+#	complex;
+#	{		# tuple with all possible answer modes
+#		{
+#			{multiple; choice; mode};
+#			{multiple}
+#		};
+#		{
+#			{mathing; mode; a; b}; {c; d; e; f};
+#			{{matching; c}; {a; d}}
+#		};
+#		{
+#			{10; .*};
+#		};
+#		{
+#			.*;
+#		}
+#	}
+#}

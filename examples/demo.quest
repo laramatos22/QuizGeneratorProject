@@ -1,0 +1,49 @@
+# This is a comment
+
+# imports a database
+# qdb <var> <path>
+qdb db "questions.qdb";
+
+# floating point number, no need for int since it is not the most usefull for the target audience
+num a= 1;
+
+text t = "sample text";
+
+# Create a question
+# All fields can be omited, more details in the relevant file
+question q = {
+	q: "String"; # The question presented to the user
+	type: multiple;
+	groups: sum, thin, here; # The groups this question belongs to
+	depend: sumthin; # Dependencies
+	ans: a, b, c, d; # Multiple choice
+	correct: a		 # The correct answer 
+};
+
+# A maching question
+question q1 = {
+	q: "String"; # The question presented to the user
+	type: match;
+	groups: sum, thin, here; 
+	depend: sumthin;
+	ans: {first, options, here}, {second, set, of, options};
+	correct: {first, second}, {options, of}, {first, set};
+};
+
+# User interface
+
+# Show the question and answers (if aplicable) and ask for input.
+ask q;
+
+#...
+
+# After the question is asked, it is possible to get the answer given by the user.
+text txt = ans q;
+
+# To know whether the answer given is correct according to the criteria on it's "correct" field, the validate function can be called.
+validate q;
+
+# Every time a user answers a question data is added to a report. The function report shows it
+report
+
+

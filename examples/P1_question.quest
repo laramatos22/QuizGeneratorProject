@@ -1,0 +1,120 @@
+# No variable assignment
+{
+	q: "String";
+	type: multiple;
+	groups: sum, thin, here;
+	depend: sumthin;
+	ans: a, b, c, d;
+	correct: a
+}
+
+# Assign to variable
+question a = {
+	q: "String";
+	type: multiple;
+	groups: sum, thin, here;
+	depend: sumthin;
+	ans: a, b, c, d;
+	correct: a
+};
+
+# Alternative list/tuple declarations
+{
+	q: "String";
+	type: multiple;
+	groups: sum, thin, here;
+	depend: sumthin;
+	ans: {"a", "b", "c", "d"};
+	correct: {"a"}
+}
+
+# Missing properties
+{
+	type: multiple;
+	groups: sum, thin, here;
+	depend: sumthin;
+	ans: {"a", "b", "c", "d"};
+	correct: {"a"}
+}
+
+{
+	type: multiple;
+	depend: sumthin;
+	ans: {"a", "b", "c", "d"};
+	correct: {"a"}
+}
+
+{
+	q: "String";
+	type: multiple;
+	ans: {"a", "b", "c", "d"};
+	correct: {"a"}
+}
+
+{
+	q: "String";
+	type: multiple;
+	groups: sum, thin, here;
+	depend: sumthin;
+}
+
+# Also testing tuples of words
+{
+	type: multiple;
+	ans: {a, b, c, d};
+	correct: {"a"}
+}
+
+{
+	type: multiple;
+}
+
+question q = {
+	type: multiple;
+};
+
+# Testing various types of questions
+{
+	type: multiple;
+	ans: a, b, c, d;
+	correct: a
+}
+
+{
+	type: matching;
+	ans: {
+		{a, b, c, d},
+		{e, f, g, h}
+	};
+	correct: {
+		{a, e},
+		{b, g}
+	}
+}
+
+{
+	type: matching;
+	ans:
+		{a, b, c, d},
+		{e, f, g, h}
+	;
+	correct:
+		{a, e},
+		{b, g}
+
+}
+
+{
+	type: short;
+	correct: {1, ".*?"}
+}
+
+{
+	type: short;
+	correct: 1, ".*?"
+}
+
+{
+	type: long;
+	correct: ".*?"
+}

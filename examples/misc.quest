@@ -1,0 +1,33 @@
+num a = 0; 
+num b = 0; 
+
+# Simple property acess
+a.property;
+
+# Simple method call
+method a
+
+# Also valid with ';'
+method a;
+
+# Method call over property call
+method a.size
+method a.size;
+
+# Chaining property calls
+a.first.property;
+
+# Chaining method calls
+foo bar a;
+
+# Operations on properties
+num a = b.ans;
+
+text a = "test: " + b.q;
+
+question q = {type: short;};
+
+num n = validate q;
+
+num n = 1+ validate q.ans;
+num n = 1 +validate q.ans;

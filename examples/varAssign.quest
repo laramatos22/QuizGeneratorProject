@@ -1,0 +1,9 @@
+num a = 1;
+num b = 2;
+#num c = 9;
+
+#b = c;
+
+num c = a;
+
+b = c;

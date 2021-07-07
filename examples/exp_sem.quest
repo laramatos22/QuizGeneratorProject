@@ -1,0 +1,16 @@
+# varDecl
+
+num a = 1;
+text b = "sample";
+
+question q = {
+	type: short;
+};
+
+# ExpComp
+
+1 > 0;
+
+num c = 1 < 0;
+
+1 >= 2 <= c;

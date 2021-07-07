@@ -1,0 +1,55 @@
+# eeee
+
+qdb db "challange.qdb"; # . requer uma regra que perceba .'s
+
+question theme = byID db, "theme1";
+print "yooooooooo\n"
+theme.correct = 1, 4;
+
+list a = shuffle byTheme db, "theme1";
+list b = shuffle byTheme db, "theme2";
+list c = shuffle byTheme db, "theme3";
+list d = shuffle byTheme db, "theme4";
+
+list gps = a, b, c, d;
+
+num ans = -1;
+
+ask theme;
+ans = ans theme;
+list chosen = a;
+
+if (ans == 2) {
+	chosen = b;
+} else if (ans == 3) {
+	chosen = c;
+} else if (ans == 4) {
+	chosen = d;
+}
+
+
+num mult = 0;
+num notMatch = 0;
+list asked = {};
+
+for each q in chosen {
+	if (mult <= 2 && q.type == notMultiple) {
+		ask q;
+		asked = q;
+		mult++;
+		continue;
+	}
+	if (notMatch <= 2 && q.type == notMatch) {
+		ask q;
+		asked = q;
+		notMatch++;
+		continue;
+	}
+	break;
+}
+
+for each q in asked {
+	q.report = "In question {q.q} you got {validate q} points\n";
+
+	report q;
+}

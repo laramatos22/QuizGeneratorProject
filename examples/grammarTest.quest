@@ -1,0 +1,299 @@
+##############
+##############
+#	Part 1	##
+##############
+##############
+
+qdb first "test.qdb";
+qdb second "another.qdb";
+
+#################
+#	Question	#
+#################
+
+# 	More verbose for easier compile time calculations.
+#question q = {
+#	q: 		"Question string";
+#	type: 	<multiple|match|numeric|short|long>;
+#	groups:	all, groups, it, belongs, to;
+#	depend:	all, dependencies;
+#	ans:	<answer>;
+#	correct:<validation>;
+#}
+
+# Answers:
+#
+# type: 	multiple
+# ans:		(tuple; with; all; answers);
+# correct:	(tuple; with; correct; answers);
+#
+# type: 	match
+# ans:		(Right; column) (Left; column)
+# correct:	(Pair; tuples) (with; all) (correct; pairs)
+#
+# type: 	<short|numeric|long>
+# NO ANS FIELD
+# correct:	<validation expression> # see Part 2
+
+# **NO** Maybe some way to lock questions for safety? (Encapsulation)
+q.q = "New question title";
+q.groups = new, groups;
+#q.type = short;
+q.correct = ".*";
+
+
+#########################
+#	QUESTION DATABASE	#
+#########################
+
+# importing
+# Should be the first in the file, so they are commented here
+#qdb first "test.qdb";
+#qdb second "another.qdb";
+
+# adds this question from the qdb to the top of the file
+q1 = byId first, "A";
+
+# these will get all questions from the group
+list a = byTheme second, "A";
+list a = byTheme second, "A";
+
+
+#################
+#	DATA TYPES	#
+#################
+
+num n  = 10;
+num n1 = 2 + 1;
+
+text aTxt = "Sample text";
+text b = aTxt + " with appended text";
+# text c = a[0:2] maybe substring operators?
+
+# should booleans be implemented or should we keep numbers 0 and 1 as "boolean"?
+
+#####################
+#	PRESENTATION	#
+#####################
+# defines the string to be presented to the user.
+# can be extended to present HTML pages in a browser.
+q.present = "Answer the question:\n {q}\n {q.ans}\n";
+
+# same idea for report formating
+q.report = "You got this answer: {ans q}";
+
+#############
+#	SHOW	#
+#############
+
+# Presents q.present to the user
+ask q;
+
+# fetches the answer to q
+ans = ans q;
+
+# fetch whether the question was answered
+# the user must be able to send a "not answered" message
+# Should it be toggleable?
+na = ans q
+
+# Should "Not Answered" be it's separate code? If yes, how would it be implemented?
+na = ans == NotAns;
+
+#################
+#	EVALUATION	#
+#################
+
+question q = {type: short;};
+
+# Evaluation phase
+num score = 0;
+
+# validate evaluates q.correct
+# 	implement ternary operator?
+if (validate q) {
+	score = 100;
+} else {
+	score = 0;
+}
+
+
+#############
+#	REPORT	#
+#############
+
+# Customizes the report message for the question
+q.report = "You got {score} points in the question '{q.q}'\n";
+
+# Shows the report message
+report q;
+
+print "\nFinal score: {score}"
+
+
+
+##############
+##############
+#	Part 2	##
+##############
+##############
+
+
+#############
+#	LIST	#
+#############
+
+# declaration
+list l  = q, q1, q2;
+list l1 = 1, 2, 3, 4;
+
+# random shuffle
+shuffle l;
+
+# iterate over a list
+# 	inline iterators can be usefull (?)
+for each v in l {
+#	print v.q
+}
+
+# indexed access
+num a = l1[0];
+
+# maybe this syntatic shugar should be implemented
+num b = l1[0:2];
+num b = l1[-1];
+#... all that python sweetness
+
+add l1 2 6; #adds the number 6 to the position 2 of l1, shifting all the previous elements
+
+remove l1 2; # removes the index 2 element
+
+#############
+# 	REGEX	#
+#############
+
+# declaration
+text regex = ".*?";
+
+# assign to question
+q.correct = regex;
+
+# maybe setting the regex for short answers is tricky, because you need to know the type of the question to set the regex in the apropriate place
+if (q.type == "short") {
+	q.correct = {2, regex};
+}
+
+ask q;
+
+number correct = validate q; # 0 if the expression didn't match, 1 otherwise
+
+text answer = ans q; # take the answer for further testing
+
+# TODO: more regex functionalities?
+
+
+#############
+# 	NUMERIC	#
+#############
+
+q.correct = 0, 1; # only accept answers between 0 and 1
+
+
+#############
+# 	TIME	#
+#############
+# For the examples were used questions, but appplies to groups as well
+
+# s-seconds m-minutes h-hours
+time t = 1s;
+print "here"
+
+# opertate with constants
+t = t*2;
+
+# set a limit for a question
+q.limit = t;
+
+# for a group it has to be a different notation
+gp.Limit = t; # original 'innit?
+
+# how long has the user been on the question
+elapsed q;
+
+#############
+# 	GROUP	#
+#############
+
+# declaration
+group g = q, q1;
+
+# from db
+group g1 = test_db.Group;
+
+# changes to question properties apply to all questions
+# 	should apply to questions added after?
+g.correct = "[a-z]+";
+
+# iterate over a group
+for each q in g {
+	print q.q;
+}
+
+# ask all questions in group
+ask g;
+
+# allow free navigation
+g.nav = 1; # 0 for navigation blocking
+
+
+
+##############
+##############
+#	Part 3	##
+##############
+##############
+
+#################
+#	SECURITY	#
+#################
+
+# The compiler should have an option to encrypt with password and add whitelist of users
+# when encrypted, the program prompts for [username and] password and if correct decrypts
+# TODO: find how this is suposed to be implemented.
+
+#########################
+#	GROUP IMPROVEMENT	#
+#########################
+
+# Only 2 questions need to be answered 
+g.min = 2;
+
+#####################
+#	DEPENDENCIES	#
+#####################
+
+question q1 = {type: short;};
+
+q1.depend = q;
+
+# q has not yet been asnwered, so this question will be skipped, ask has no effect
+# 	should a prompt to answer q be added?
+ask q1;
+
+#########################
+#	ANSWER VALIDATION	#
+#########################
+
+# Numeric answer validation
+q.type = "numeric";
+ask q;
+ans = q.ans;
+
+# TODO: THIS
+#q.correct = {
+#	if ans % 2 = 0 {
+#		score = 100;
+#	} else {
+#		score == 0;
+#	}
+#}
